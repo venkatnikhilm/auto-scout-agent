@@ -12,7 +12,7 @@ dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
 table = dynamodb.Table(DYNAMO_TABLE)
 
 
-def create_monitor_item(url, description, interval_seconds):
+def create_monitor_item(url, description, interval_seconds, condition):
     item_id = str(uuid.uuid4())
     now = int(time.time())
     item = {
@@ -22,7 +22,8 @@ def create_monitor_item(url, description, interval_seconds):
         "interval_seconds": interval_seconds,
         "last_price": None,
         "last_checked": None,
-        "created_at": now
+        "created_at": now,
+        "condition": condition
     }
     table.put_item(Item=item)
     return item
@@ -46,9 +47,9 @@ def update_monitor_price(monitor_id, price, confidence=None):
     now = int(time.time())
     expr = "SET last_price = :p, last_checked = :t"
     values = {":p": price, ":t": now}
-    if confidence is not None:
-        expr += ", last_confidence = :c"
-        values[":c"] = confidence
+    # if confidence is not None:
+    #     expr += ", last_confidence = :c"
+    #     values[":c"] = confidence
     table.update_item(
         Key={"monitor_id": monitor_id},
         UpdateExpression=expr,

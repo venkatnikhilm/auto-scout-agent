@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-AWS_REGION = os.getenv("AWS_REGION", "us-west-2")
-DYNAMO_TABLE = os.getenv("DYNAMO_TABLE", "PriceMonitor")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+DYNAMO_TABLE = os.getenv("DYNAMO_TABLE", "Watchers")
 STEP_FUNCTION_ARN = os.getenv("STEP_FUNCTION_ARN", "")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

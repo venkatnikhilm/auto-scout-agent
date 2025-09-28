@@ -75,16 +75,28 @@ def lambda_handler(event, context):
     try:
         # Parse the LLM response properly
         llm_response = genai_client.models.generate_content(model="gemini-2.5-flash", contents=prompt + "\n\nRequest: " + original_description)
-        parsed_data = json.loads(llm_response.text)
+    
+    
+    # Extract JSON from markdown code blocks if present
+        response_text = llm_response.text.strip()
+        if response_text.startswith("```json"):
+            # Remove markdown code block markers
+            response_text = response_text.replace("```json", "").replace("```", "").strip()
+        elif response_text.startswith("```"):
+            # Remove generic code block markers
+            response_text = response_text.replace("```", "").strip()
+        
+        parsed_data = json.loads(response_text)
         
         # Extract values from parsed data
         extracted_description = parsed_data.get("description", original_description)
         url = parsed_data.get("url")
         extracted_interval = parsed_data.get("interval", "")
+        condition = parsed_data.get("condition", "")
         
-        # Handle "none" URL case
-        if url == "none":
-            url = body.get("url")  # Fallback to direct URL from body
+        # # Handle "none" URL case
+        # if url == "none" or None :
+        #     url = body.get("url")  # Fallback to direct URL from body
             
     except Exception as e:
         # Fallback if parsing fails
@@ -103,10 +115,18 @@ def lambda_handler(event, context):
     # Use extracted interval or fallback to original description
     interval_seconds = parse_interval(extracted_interval if extracted_interval else original_description)
 
-    item = create_monitor_item(url, extracted_description, interval_seconds)
+
+    item = create_monitor_item(url, extracted_description, interval_seconds, condition)
 
     # start step function execution; pass url & monitor_id
-    input_payload = {"url": url, "monitor_id": item["monitor_id"], "description": extracted_description}
+    input_payload = {"url": url, "monitor_id": item["monitor_id"], "description": extracted_description, "condition": condition}
     sfn.start_execution(stateMachineArn=STEP_FUNCTION_ARN, input=json.dumps(input_payload))
 
     return {"statusCode": 200, "body": json.dumps({"message": "Monitor created", "monitor": item})}
+
+
+# if __name__ == "__main__":
+#     test_event = {
+#         "body": {"description": "You need to track the price of the item and notify me when it is less than $100 on the website https://www.nike.com/t/air-foamposite-one-mens-shoes-nrH2sc/HJ5195-400"}
+#     }
+#     print(lambda_handler(test_event, None))

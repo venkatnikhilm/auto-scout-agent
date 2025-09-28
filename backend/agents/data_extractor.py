@@ -128,6 +128,9 @@ def extract_from_image(image_bytes: bytes, description: str):
     # NOTE: The exact SDK call for multi-modal images depends on your installed SDK version.
     # The fallback is to run OCR (tesseract) locally on screenshot and then call extract_from_text(ocr_text,...).
     try:
+        #saving image
+        # with open("image.png", "wb") as f:
+        #     f.write(image_bytes)
         image_part = genai.types.Part.from_bytes(
             data=image_bytes,
             # The output is PNG, so use the corresponding MIME type
@@ -136,18 +139,18 @@ def extract_from_image(image_bytes: bytes, description: str):
         # example approach (SDKs vary) — adapt to your client:
         resp = genai_client.models.generate_content(
             model="gemini-2.5-flash",
-            prompt=f"Extract the following: {description}. Return JSON {{'value','normalized','confidence'}} and nothing else.",
-            image=image_part
+            contents=[f"Extract the following: {description}.Return value and nothing else.", image_part]
         )
         text = _resp_to_text(resp).strip()
-        m = re.search(r"\{.*\}", text, re.S)
-        if m:
-            parsed = json.loads(m.group(0))
-            parsed["normalized"] = parsed.get("normalized") or _normalize_number(parsed.get("value"))
-            parsed["confidence"] = float(parsed.get("confidence", 0.8))
-            return {"value": parsed.get("value"), "normalized": parsed.get("normalized"), "confidence": parsed.get("confidence")}
-        # fallback
-        return {"value": None, "normalized": None, "confidence": 0.0}
+        # m = re.search(r"\{.*\}", text, re.S)
+        # if m:
+        #     parsed = json.loads(m.group(0))
+        #     parsed["normalized"] = parsed.get("normalized") or _normalize_number(parsed.get("value"))
+        #     parsed["confidence"] = float(parsed.get("confidence", 0.8))
+        #     return {"value": parsed.get("value"), "normalized": parsed.get("normalized"), "confidence": parsed.get("confidence")}
+        # # fallback
+        print("Extracted text: %s", text)
+        return {"value": text}
     except Exception:
         # If image path is unsupported by SDK, you'd use OCR here (e.g., pytesseract) then call extract_from_text()
-        return {"value": None, "normalized": None, "confidence": 0.0}
+        return {"value": None}

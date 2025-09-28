@@ -1,0 +1,39 @@
+{
+    "Comment": "Value Monitor State Machine - Single Check Cycle",
+    "StartAt": "CheckValue",
+    "States": {
+      "CheckValue": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:us-east-1:509399621571:function:check_price",
+        "ResultPath": "$.check_result",
+        "Next": "Notify?"
+      },
+      "Notify?": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.check_result.changed",
+            "BooleanEquals": true,
+            "Next": "Notify"
+          }
+        ],
+        "Default": "ScheduleNext"
+      },
+      "Notify": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:us-east-1:509399621571:function:notify",
+        "ResultPath": "$.notify_result",
+        "Next": "ScheduleNext"
+      },
+      "ScheduleNext": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:us-east-1:509399621571:function:schedule_next_check",
+        "ResultPath": "$.schedule_result",
+        "Next": "MonitorComplete"
+      },
+      "MonitorComplete": {
+        "Type": "Succeed",
+        "Comment": "Single monitoring cycle completed"
+      }
+    }
+  }

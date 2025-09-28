@@ -2,6 +2,6 @@ boto3
 requests
 lxml
 python-dotenv
-google-generativeai
+google-genai
 playwright      # if using playwrigh in container
 pytest-playwright  # if using playwrigh in container
