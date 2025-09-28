@@ -2,10 +2,17 @@
 import json
 import traceback
 import boto3
-from backend.db.dynamo_client import get_monitor_by_id, update_monitor_price
-from backend.scrapper.scraper import fetch_page_html_requests, extract_with_xpath, fetch_page_html_with_browser, fetch_screenshot_playwright
-from backend.agents.data_extractor import extract_from_text, extract_from_image
-from backend.utils.env import SNS_TOPIC_ARN, AWS_REGION
+try:
+    from backend.db.dynamo_client import get_monitor_by_id, update_monitor_price
+    from backend.scrapper.scraper import fetch_page_html_requests, extract_with_xpath, fetch_page_html_with_browser, fetch_screenshot_playwright
+    from backend.agents.data_extractor import extract_from_text, extract_from_image
+    from backend.utils.env import SNS_TOPIC_ARN, AWS_REGION
+except ImportError:
+    # For Lambda deployment, imports might be different
+    from db.dynamo_client import get_monitor_by_id, update_monitor_price
+    from scrapper.scraper import fetch_page_html_requests, extract_with_xpath, fetch_page_html_with_browser, fetch_screenshot_playwright
+    from agents.data_extractor import extract_from_text, extract_from_image
+    from utils.env import SNS_TOPIC_ARN, AWS_REGION
 import logging
 
 logger = logging.getLogger()

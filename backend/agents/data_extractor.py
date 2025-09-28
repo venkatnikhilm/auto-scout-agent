@@ -3,7 +3,10 @@ import re
 import json
 import logging
 from google import genai
-from backend.utils.env import GEMINI_API_KEY
+try:
+    from backend.utils.env import GEMINI_API_KEY
+except ImportError:
+    from utils.env import GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

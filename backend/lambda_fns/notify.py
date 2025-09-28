@@ -2,7 +2,10 @@
 import json
 import boto3
 import os
-from backend.utils.env import AWS_REGION
+try:
+    from backend.utils.env import AWS_REGION
+except ImportError:
+    from utils.env import AWS_REGION
 
 sns = boto3.client("sns", region_name=AWS_REGION)
 

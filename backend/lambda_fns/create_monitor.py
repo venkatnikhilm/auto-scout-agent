@@ -2,10 +2,14 @@
 import json
 import re
 import boto3
-from backend.db.dynamo_client import create_monitor_item, get_monitor_by_url
-from backend.utils.env import STEP_FUNCTION_ARN, DEFAULT_INTERVAL
+try:
+    from backend.db.dynamo_client import create_monitor_item, get_monitor_by_url
+    from backend.utils.env import STEP_FUNCTION_ARN, DEFAULT_INTERVAL, GEMINI_API_KEY
+except ImportError:
+    # For Lambda deployment, imports might be different
+    from db.dynamo_client import create_monitor_item, get_monitor_by_url
+    from utils.env import STEP_FUNCTION_ARN, DEFAULT_INTERVAL, GEMINI_API_KEY
 from google import genai
-from backend.utils.env import GEMINI_API_KEY
 
 import os
 
@@ -57,7 +61,8 @@ def lambda_handler(event, context):
     body = event.get("body")
     if isinstance(body, str):
         body = json.loads(body)
-    description = body.get("description", "")
+    
+    original_description = body.get("description", "")
     
     prompt = """You are a structured data extractor. Analyze the following request to identify the specific parameter being monitored, the mandatory notification frequency, the trigger condition, and any provided URL. Format the output as a JSON object with the keys 'description', 'interval', 'condition', and 'url'.
         Formatting Rules:
@@ -66,8 +71,26 @@ def lambda_handler(event, context):
         'condition': The trigger for notification (e.g., 'less than $100', 'equal to 'Out of Stock'', 'any change').
         'url': The full URL if provided in the text; otherwise, use the value 'none'.
     """
-    description = json.loads(genai_client.models.generate_content(model="gemini-2.5-flash", contents=prompt + "\n\nRequest: " + description).text).get("description", description)
-    url = description.get("url")
+    
+    try:
+        # Parse the LLM response properly
+        llm_response = genai_client.models.generate_content(model="gemini-2.5-flash", contents=prompt + "\n\nRequest: " + original_description)
+        parsed_data = json.loads(llm_response.text)
+        
+        # Extract values from parsed data
+        extracted_description = parsed_data.get("description", original_description)
+        url = parsed_data.get("url")
+        extracted_interval = parsed_data.get("interval", "")
+        
+        # Handle "none" URL case
+        if url == "none":
+            url = body.get("url")  # Fallback to direct URL from body
+            
+    except Exception as e:
+        # Fallback if parsing fails
+        extracted_description = original_description
+        url = body.get("url")
+        extracted_interval = ""
 
     if not url:
         return {"statusCode": 400, "body": json.dumps({"error": "url required"})}
@@ -77,12 +100,13 @@ def lambda_handler(event, context):
     if existing:
         return {"statusCode": 200, "body": json.dumps({"message": "Monitor already exists", "item": existing})}
 
-    interval_seconds = parse_interval(description.get("interval", body.get("description", "")))
+    # Use extracted interval or fallback to original description
+    interval_seconds = parse_interval(extracted_interval if extracted_interval else original_description)
 
-    item = create_monitor_item(url, description.get("description", body.get("description", "")), interval_seconds)
+    item = create_monitor_item(url, extracted_description, interval_seconds)
 
     # start step function execution; pass url & monitor_id
-    input_payload = {"url": url, "monitor_id": item["monitor_id"], "description": description.get("description", body.get("description", ""))}
+    input_payload = {"url": url, "monitor_id": item["monitor_id"], "description": extracted_description}
     sfn.start_execution(stateMachineArn=STEP_FUNCTION_ARN, input=json.dumps(input_payload))
 
     return {"statusCode": 200, "body": json.dumps({"message": "Monitor created", "monitor": item})}
