@@ -49,14 +49,14 @@ def safe_get_html(url):
 
 
 def publish_notification(monitor, old_price, new_price, confidence):
-    msg = {
-        "title": f"Monitor update: {monitor['description']}",
-        "url": monitor["url"],
-        "new_price": new_price,
-        "confidence": confidence,
-        "monitor_id": monitor["monitor_id"]
-    }
-    sns.publish(TopicArn=SNS_TOPIC_ARN, Message=json.dumps(msg), Subject="AutoScout Alert")
+    OUT_MESSAGE = f"""Hello,\nWe’re reaching out with an update regarding one of your active monitors. Please find the details below:\n\nMonitor Description: {monitor['description']}\nURL: {monitor['url']}\nPrevious Price: {old_price}\nNew Price: {new_price}\nMonitor ID: {monitor['monitor_id']}.\n\nIf you have any questions or would like to adjust this monitor, please log in to your dashboard for more details. \n\nBest regards,\nThe AutoScout Team"""
+    # msg = {
+    #     "title": f"Monitor update: {monitor['description']}",
+    #     "url": monitor["url"],
+    #     "new_price": new_price,
+    #     "monitor_id": monitor["monitor_id"]
+    # }
+    sns.publish(TopicArn=SNS_TOPIC_ARN, Message=OUT_MESSAGE, Subject="AutoScout Alert")
 
 
 def lambda_handler(event, context):
