@@ -45,3 +45,22 @@ def fetch_page_html_with_browser(url):
         content = page.content()
         browser.close()
     return content
+
+def fetch_screenshot_playwright(url, timeout=30000):
+    """
+    Returns PNG bytes of a full-page screenshot using Playwright.
+    Note: This requires Playwright + browsers installed in your Lambda container.
+    """
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+        page = browser.new_page()
+        page.goto(url, timeout=timeout)
+        # wait for network idle or small delay if needed
+        try:
+            page.wait_for_load_state("networkidle", timeout=5000)
+        except Exception:
+            pass
+        image_bytes = page.screenshot(full_page=True)
+        browser.close()
+    return image_bytes

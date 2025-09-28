@@ -35,7 +35,7 @@ def parse_interval(description: str) -> int:
         f"If no interval specified, return the number  {DEFAULT_INTERVAL}.\n\nDescription: \"{description}\"\n\nReturn only the number."
     )
     try:
-        resp = genai_client.generate(model="gemini-1.5-pro", prompt=prompt, max_output_tokens=10)
+        resp = genai_client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
         # extract text safely
         text = ""
         try:

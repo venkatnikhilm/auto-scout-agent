@@ -39,10 +39,15 @@ def get_monitor_by_id(monitor_id):
     return resp.get("Item")
 
 
-def update_monitor_price(monitor_id, price):
+def update_monitor_price(monitor_id, price, confidence=None):
     now = int(time.time())
+    expr = "SET last_price = :p, last_checked = :t"
+    values = {":p": price, ":t": now}
+    if confidence is not None:
+        expr += ", last_confidence = :c"
+        values[":c"] = confidence
     table.update_item(
         Key={"monitor_id": monitor_id},
-        UpdateExpression="SET last_price = :p, last_checked = :t",
-        ExpressionAttributeValues={":p": price, ":t": now}
+        UpdateExpression=expr,
+        ExpressionAttributeValues=values
     )
