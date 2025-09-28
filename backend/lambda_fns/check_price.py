@@ -1,18 +1,32 @@
-# backend/lambda/check_price.py (modified)
+# # backend/lambda/check_price.py (modified)
+# import json
+# import traceback
+# import boto3
+# try:
+#     from backend.db.dynamo_client import get_monitor_by_id, update_monitor_price
+#     from backend.scrapper.scraper import fetch_page_html_requests, extract_with_xpath, fetch_page_html_with_browser, fetch_screenshot_playwright
+#     from backend.agents.data_extractor import extract_from_text, extract_from_image, _resp_to_text
+#     from backend.utils.env import SNS_TOPIC_ARN, AWS_REGION, GEMINI_API_KEY
+# except ImportError:
+#     # For Lambda deployment, imports might be different
+#     from db.dynamo_client import get_monitor_by_id, update_monitor_price
+#     from scrapper.scraper import fetch_page_html_requests, extract_with_xpath, fetch_page_html_with_browser, fetch_screenshot_playwright
+#     from agents.data_extractor import extract_from_text, extract_from_image, _resp_to_text
+#     from utils.env import SNS_TOPIC_ARN, AWS_REGION, GEMINI_API_KEY
+# from google import genai
+# import logging
 import json
 import traceback
 import boto3
-try:
-    from backend.db.dynamo_client import get_monitor_by_id, update_monitor_price
-    from backend.scrapper.scraper import fetch_page_html_requests, extract_with_xpath, fetch_page_html_with_browser, fetch_screenshot_playwright
-    from backend.agents.data_extractor import extract_from_text, extract_from_image, _resp_to_text
-    from backend.utils.env import SNS_TOPIC_ARN, AWS_REGION, GEMINI_API_KEY
-except ImportError:
-    # For Lambda deployment, imports might be different
-    from db.dynamo_client import get_monitor_by_id, update_monitor_price
-    from scrapper.scraper import fetch_page_html_requests, extract_with_xpath, fetch_page_html_with_browser, fetch_screenshot_playwright
-    from agents.data_extractor import extract_from_text, extract_from_image, _resp_to_text
-    from utils.env import SNS_TOPIC_ARN, AWS_REGION, GEMINI_API_KEY
+from backend.db.dynamo_client import get_monitor_by_id, update_monitor_price
+from backend.scrapper.scraper import (
+    fetch_page_html_requests,
+    extract_with_xpath,
+    fetch_page_html_with_browser,
+    fetch_screenshot_playwright,
+)
+from backend.agents.data_extractor import extract_from_text, extract_from_image, _resp_to_text
+from backend.utils.env import SNS_TOPIC_ARN, AWS_REGION, GEMINI_API_KEY
 from google import genai
 import logging
 
@@ -51,6 +65,7 @@ def lambda_handler(event, context):
     Output: {"interval_seconds": n, "status": "..."}
     """
     try:
+        print("check_price started event=%s", json.dumps(event))
         logger.info("check_price started event=%s", json.dumps(event))
         url = event.get("url")
         monitor_id = event.get("monitor_id")
@@ -77,6 +92,7 @@ def lambda_handler(event, context):
         # 2) If low confidence or no value, try screenshot-based extraction (visual)
         # if (not extracted) or (extracted.get("confidence", 0.0) < 0.45) or (not extracted.get("value")):
         #     logger.info("Text extraction low-confidence; trying screenshot extraction")
+        extracted = None
         try:
             print("Fetching screenshot for %s", url)
             image_bytes = fetch_screenshot_playwright(url)
@@ -135,12 +151,12 @@ def lambda_handler(event, context):
         logger.error("check_price exception: %s", traceback.format_exc())
         return {"interval_seconds": 7200, "status": "error"}
     
-# if __name__ == "__main__":
-#     # for local testing
-#     test_event = {
-#         "url": "https://www.nike.com/t/air-foamposite-one-mens-shoes-nrH2sc/HJ5195-400",
-#         "monitor_id": "d3835e07-f013-45fd-aa71-517685036395",
-#         "description": "price of the item",
-#         "condition": "less than $300"
-#     }
-#     print(lambda_handler(test_event, None))
+if __name__ == "__main__":
+    # for local testing
+    test_event = {
+        "url": "https://www.nike.com/t/air-foamposite-one-mens-shoes-nrH2sc/HJ5195-400",
+        "monitor_id": "d3835e07-f013-45fd-aa71-517685036395",
+        "description": "price of the item",
+        "condition": "less than $300"
+    }
+    print(lambda_handler(test_event, None))

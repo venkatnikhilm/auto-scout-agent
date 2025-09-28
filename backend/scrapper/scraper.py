@@ -3,6 +3,8 @@ import requests
 from lxml import etree, html
 import logging
 import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 # If you plan to use Playwright or Selenium, ensure Chrome + driver in your Lambda image and import here.
 
@@ -47,20 +49,33 @@ def fetch_page_html_with_browser(url):
     return content
 
 def fetch_screenshot_playwright(url, timeout=30000):
-    """
-    Returns PNG bytes of a full-page screenshot using Playwright.
-    Note: This requires Playwright + browsers installed in your Lambda container.
-    """
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
-        page = browser.new_page()
-        page.goto(url, timeout=timeout)
-        # wait for network idle or small delay if needed
-        try:
-            page.wait_for_load_state("networkidle", timeout=5000)
-        except Exception:
-            pass
-        image_bytes = page.screenshot(full_page=True)
-        browser.close()
-    return image_bytes
+    # """
+    # Returns PNG bytes of a full-page screenshot using Playwright.
+    # Note: This requires Playwright + browsers installed in your Lambda container.
+    # """
+    # from playwright.sync_api import sync_playwright
+    # with sync_playwright() as p:
+    #     browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+    #     page = browser.new_page()
+    #     page.goto(url, timeout=timeout)
+    #     # wait for network idle or small delay if needed
+    #     try:
+    #         page.wait_for_load_state("networkidle", timeout=5000)
+    #     except Exception:
+    #         pass
+    #     image_bytes = page.screenshot(full_page=True)
+    #     browser.close()
+    # return image_bytes
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(options=options)
+    driver.set_page_load_timeout(timeout // 1000)  # Selenium uses seconds
+    driver.get(url)
+
+    # Full-page screenshot (Chrome-specific)
+    screenshot = driver.get_screenshot_as_png()
+    driver.quit()
+    return screenshot

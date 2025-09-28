@@ -5,3 +5,4 @@ python-dotenv
 google-genai
 playwright      # if using playwrigh in container
 pytest-playwright  # if using playwrigh in container
+apscheduler>=3.10.4
