@@ -57,8 +57,17 @@ def lambda_handler(event, context):
     body = event.get("body")
     if isinstance(body, str):
         body = json.loads(body)
-    url = body.get("url")
     description = body.get("description", "")
+    
+    prompt = """You are a structured data extractor. Analyze the following request to identify the specific parameter being monitored, the mandatory notification frequency, the trigger condition, and any provided URL. Format the output as a JSON object with the keys 'description', 'interval', 'condition', and 'url'.
+        Formatting Rules:
+        'description': A brief, noun-based phrase identifying what is being checked (e.g., 'price of item', 'stock level', 'web page content').
+        'interval': The required notification frequency (e.g., '3 hours', 'daily', 'none' if only a condition is set).
+        'condition': The trigger for notification (e.g., 'less than $100', 'equal to 'Out of Stock'', 'any change').
+        'url': The full URL if provided in the text; otherwise, use the value 'none'.
+    """
+    description = json.loads(genai_client.models.generate_content(model="gemini-2.5-flash", contents=prompt + "\n\nRequest: " + description).text).get("description", description)
+    url = description.get("url")
 
     if not url:
         return {"statusCode": 400, "body": json.dumps({"error": "url required"})}
@@ -68,12 +77,12 @@ def lambda_handler(event, context):
     if existing:
         return {"statusCode": 200, "body": json.dumps({"message": "Monitor already exists", "item": existing})}
 
-    interval_seconds = parse_interval(description)
+    interval_seconds = parse_interval(description.get("interval", body.get("description", "")))
 
-    item = create_monitor_item(url, description, interval_seconds)
+    item = create_monitor_item(url, description.get("description", body.get("description", "")), interval_seconds)
 
     # start step function execution; pass url & monitor_id
-    input_payload = {"url": url, "monitor_id": item["monitor_id"], "description": description}
+    input_payload = {"url": url, "monitor_id": item["monitor_id"], "description": description.get("description", body.get("description", ""))}
     sfn.start_execution(stateMachineArn=STEP_FUNCTION_ARN, input=json.dumps(input_payload))
 
     return {"statusCode": 200, "body": json.dumps({"message": "Monitor created", "monitor": item})}
