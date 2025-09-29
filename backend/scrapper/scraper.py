@@ -48,7 +48,7 @@ def fetch_page_html_with_browser(url):
         browser.close()
     return content
 
-def fetch_screenshot_playwright(url, timeout=30000):
+# def fetch_screenshot_playwright(url, timeout=30000):
     # """
     # Returns PNG bytes of a full-page screenshot using Playwright.
     # Note: This requires Playwright + browsers installed in your Lambda container.
@@ -76,6 +76,26 @@ def fetch_screenshot_playwright(url, timeout=30000):
     driver.get(url)
 
     # Full-page screenshot (Chrome-specific)
+    screenshot = driver.get_screenshot_as_png()
+    driver.quit()
+    return screenshot
+def fetch_screenshot_playwright(url, timeout=30000):
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(options=options)
+    driver.set_page_load_timeout(timeout // 1000)
+    driver.get(url)
+
+    # 👇 Scroll to bottom to load dynamic content
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+    # 👇 Resize window to full height before screenshot
+    height = driver.execute_script("return document.body.scrollHeight")
+    driver.set_window_size(1920, height)
+
     screenshot = driver.get_screenshot_as_png()
     driver.quit()
     return screenshot

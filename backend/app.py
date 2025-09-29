@@ -94,7 +94,7 @@ from backend.lambda_fns.check_price import lambda_handler as check_price
 from backend.lambda_fns.notify import lambda_handler as notify
 from backend.db.dynamo_client import create_monitor_item
 from backend.utils.extract_fields import extract_fields
-
+from fastapi.middleware.cors import CORSMiddleware
 import uuid
 
 app = FastAPI()
@@ -102,6 +102,15 @@ scheduler = BackgroundScheduler()
 scheduler.start()
 
 monitors = {}  # optional: in-memory mirror; DynamoDB is the source of truth
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or restrict to your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/create_monitor")
 async def api_create_monitor(request: Request):

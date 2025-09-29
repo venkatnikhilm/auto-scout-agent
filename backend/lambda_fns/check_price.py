@@ -48,15 +48,27 @@ def safe_get_html(url):
             raise e2
 
 
+# def publish_notification(monitor, old_price, new_price, confidence):
+#     msg = {
+#         "title": f"Monitor update: {monitor['description']}",
+#         "url": monitor["url"],
+#         "new_price": new_price,
+#         "confidence": confidence,
+#         "monitor_id": monitor["monitor_id"]
+#     }
+#     sns.publish(TopicArn=SNS_TOPIC_ARN, Message=json.dumps(msg), Subject="AutoScout Alert")
 def publish_notification(monitor, old_price, new_price, confidence):
-    msg = {
-        "title": f"Monitor update: {monitor['description']}",
-        "url": monitor["url"],
-        "new_price": new_price,
-        "confidence": confidence,
-        "monitor_id": monitor["monitor_id"]
-    }
-    sns.publish(TopicArn=SNS_TOPIC_ARN, Message=json.dumps(msg), Subject="AutoScout Alert")
+    if old_price:
+        OUT_MESSAGE = f"""Hello,\nWe’re reaching out with an update regarding one of your active monitors. Please find the details below:\n\nMonitor Description: {monitor['description']}\nURL: {monitor['url']}\nPrevious Value: {old_price}\nNew Value: {new_price}\nMonitor ID: {monitor['monitor_id']}.\n\nIf you have any questions or would like to adjust this monitor, please log in to your dashboard for more details. \n\nBest regards,\nThe AutoScout Team"""
+    else:
+        OUT_MESSAGE = f"""Hello,\nWe’re reaching out with an update regarding one of your active monitors. Please find the details below:\n\nMonitor Description: {monitor['description']}\nURL: {monitor['url']}\nNew Value: {new_price}\nMonitor ID: {monitor['monitor_id']}.\n\nIf you have any questions or would like to adjust this monitor, please log in to your dashboard for more details. \n\nBest regards,\nThe AutoScout Team"""
+    # msg = {
+    #     "title": f"Monitor update: {monitor['description']}",
+    #     "url": monitor["url"],
+    #     "new_price": new_price,
+    #     "monitor_id": monitor["monitor_id"]
+    # }
+    sns.publish(TopicArn=SNS_TOPIC_ARN, Message=OUT_MESSAGE, Subject="AutoScout Alert")
 
 
 def lambda_handler(event, context):
@@ -95,7 +107,14 @@ def lambda_handler(event, context):
         extracted = None
         try:
             print("Fetching screenshot for %s", url)
+
             image_bytes = fetch_screenshot_playwright(url)
+            #save screenshot
+            with open("screenshot.png", "wb") as f:
+                f.write(image_bytes)
+            #saving image
+            with open("image.png", "wb") as f:
+                f.write(image_bytes)
             extracted_img = extract_from_image(image_bytes, monitor["description"])
                 # prefer image extraction if confidence higher
             # if extracted_img and extracted_img.get("confidence", 0.0) > extracted.get("confidence", 0.0) if extracted else True:
